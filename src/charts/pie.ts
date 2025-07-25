@@ -1,7 +1,9 @@
 import { z } from "zod";
 import { zodToJsonSchema } from "../utils";
 import {
+  BackgroundColorSchema,
   HeightSchema,
+  PaletteSchema,
   TextureSchema,
   ThemeSchema,
   TitleSchema,
@@ -19,7 +21,7 @@ const schema = {
   data: z
     .array(data)
     .describe(
-      "Data for pie chart, such as, [{ category: '分类一', value: 27 }].",
+      "Data for pie chart, it should be an array of objects, each object contains a `category` field and a `value` field, such as, [{ category: '分类一', value: 27 }].",
     )
     .nonempty({ message: "Pie chart data cannot be empty." }),
   innerRadius: z
@@ -30,19 +32,13 @@ const schema = {
     ),
   style: z
     .object({
-      backgroundColor: z
-        .string()
-        .optional()
-        .describe("Background color of the chart, such as, '#fff'."),
-      palette: z
-        .array(z.string())
-        .optional()
-        .describe("Color palette for the chart, it is a collection of colors."),
+      backgroundColor: BackgroundColorSchema,
+      palette: PaletteSchema,
+      texture: TextureSchema,
     })
     .optional()
     .describe("Custom style configuration for the chart."),
   theme: ThemeSchema,
-  texture: TextureSchema,
   width: WidthSchema,
   height: HeightSchema,
   title: TitleSchema,

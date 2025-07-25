@@ -3,7 +3,9 @@ import { zodToJsonSchema } from "../utils";
 import {
   AxisXTitleSchema,
   AxisYTitleSchema,
+  BackgroundColorSchema,
   HeightSchema,
+  PaletteSchema,
   TextureSchema,
   ThemeSchema,
   TitleSchema,
@@ -21,7 +23,7 @@ const schema = {
   data: z
     .array(data)
     .describe(
-      "Data for line chart, such as, [{ time: '2015', value: 23 }, { time: '2016', value: 32 }].",
+      "Data for line chart, it should be an array of objects, each object contains a `time` field and a `value` field, such as, [{ time: '2015', value: 23 }, { time: '2016', value: 32 }].",
     )
     .nonempty({ message: "Line chart data cannot be empty." }),
   stack: z
@@ -33,14 +35,9 @@ const schema = {
     ),
   style: z
     .object({
-      backgroundColor: z
-        .string()
-        .optional()
-        .describe("Background color of the chart, such as, '#fff'."),
-      palette: z
-        .array(z.string())
-        .optional()
-        .describe("Color palette for the chart, it is a collection of colors."),
+      texture: TextureSchema,
+      backgroundColor: BackgroundColorSchema,
+      palette: PaletteSchema,
       lineWidth: z
         .number()
         .optional()
@@ -49,7 +46,6 @@ const schema = {
     .optional()
     .describe("Custom style configuration for the chart."),
   theme: ThemeSchema,
-  texture: TextureSchema,
   width: WidthSchema,
   height: HeightSchema,
   title: TitleSchema,
