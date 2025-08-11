@@ -10,26 +10,37 @@ import {
   WidthSchema,
 } from "./base";
 
-type TreemapDataType = {
-  name: string;
-  value: number;
-  children?: TreemapDataType[];
-};
-// Define recursive schema for hierarchical data
-const TreeNodeSchema: z.ZodType<TreemapDataType> = z.lazy(() =>
-  z.object({
-    name: z.string(),
-    value: z.number(),
-    children: z.array(TreeNodeSchema).optional(),
-  }),
-);
+// Define recursive schema for hierarchical data.
+// The recursive schema is not supported by gemini, and other clients, so we use a non-recursive schema which can represent a tree structure with a fixed depth.
+// Ref: https://github.com/antvis/mcp-server-chart/issues/155
+// Ref: https://github.com/antvis/mcp-server-chart/issues/132
+const TreeNodeSchema = z.object({
+  name: z.string(),
+  value: z.number(),
+  children: z
+    .array(
+      z.object({
+        name: z.string(),
+        value: z.number(),
+        children: z
+          .array(
+            z.object({
+              name: z.string(),
+              value: z.number(),
+            }),
+          )
+          .optional(),
+      }),
+    )
+    .optional(),
+});
 
 // Treemap chart input schema
 const schema = {
   data: z
     .array(TreeNodeSchema)
     .describe(
-      "Data for treemap chart, such as, [{ name: 'Design', value: 70, children: [{ name: 'Tech', value: 20 }] }].",
+      "Data for treemap chart which is a hierarchical structure, such as, [{ name: 'Design', value: 70, children: [{ name: 'Tech', value: 20 }] }], and the maximum depth is 3.",
     )
     .nonempty({ message: "Treemap chart data cannot be empty." }),
   style: z
