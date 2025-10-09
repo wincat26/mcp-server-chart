@@ -1,22 +1,25 @@
 import type { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
-import express from "express";
 import cors from "cors";
+import express from "express";
 
 export const startHTTPStreamableServer = async (
   createServer: () => Server,
   endpoint = "/mcp",
   port = 1122,
+  host = "localhost",
 ): Promise<void> => {
   const app = express();
   app.use(express.json());
-  app.use(cors({ origin: '*', exposedHeaders: ['Mcp-Session-Id'] }));
+  app.use(cors({ origin: "*", exposedHeaders: ["Mcp-Session-Id"] }));
 
   app.post(endpoint, async (req, res) => {
     try {
       const server = createServer();
-      const transport = new StreamableHTTPServerTransport({ sessionIdGenerator: undefined });
-      res.on('close', () => {
+      const transport = new StreamableHTTPServerTransport({
+        sessionIdGenerator: undefined,
+      });
+      res.on("close", () => {
         transport.close();
         server.close();
       });
@@ -25,8 +28,8 @@ export const startHTTPStreamableServer = async (
     } catch (error) {
       if (!res.headersSent) {
         res.status(500).json({
-          jsonrpc: '2.0',
-          error: { code: -32603, message: 'Internal server error' },
+          jsonrpc: "2.0",
+          error: { code: -32603, message: "Internal server error" },
           id: null,
         });
       }
@@ -49,7 +52,9 @@ export const startHTTPStreamableServer = async (
     });
   });
 
-  app.listen(port, () => {
-    console.log(`Streamable HTTP Server listening on http://localhost:${port}${endpoint}`);
+  app.listen(port, host, () => {
+    console.log(
+      `Streamable HTTP Server listening on http://${host}:${port}${endpoint}`,
+    );
   });
 };
