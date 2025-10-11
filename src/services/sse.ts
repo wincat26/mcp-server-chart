@@ -1,6 +1,6 @@
 import type { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import { SSEServerTransport } from "@modelcontextprotocol/sdk/server/sse.js";
-import express from "express";
+import express, { Request, Response } from "express";
 
 export const startSSEMcpServer = async (
   server: Server,
@@ -13,7 +13,7 @@ export const startSSEMcpServer = async (
 
   const transports: Record<string, SSEServerTransport> = {};
 
-  app.get(endpoint, async (req, res) => {
+  app.get(endpoint, async (req: Request, res: Response) => {
     try {
       const transport = new SSEServerTransport("/messages", res);
       transports[transport.sessionId] = transport;
@@ -25,7 +25,7 @@ export const startSSEMcpServer = async (
     }
   });
 
-  app.post("/messages", async (req, res) => {
+  app.post('/messages', async (req: Request, res: Response) => {
     const sessionId = req.query.sessionId as string;
     if (!sessionId) return res.status(400).send("Missing sessionId parameter");
 

@@ -1,7 +1,7 @@
 import type { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
+import express, { Request, Response } from "express";
 import cors from "cors";
-import express from "express";
 
 export const startHTTPStreamableServer = async (
   createServer: () => Server,
@@ -13,7 +13,7 @@ export const startHTTPStreamableServer = async (
   app.use(express.json());
   app.use(cors({ origin: "*", exposedHeaders: ["Mcp-Session-Id"] }));
 
-  app.post(endpoint, async (req, res) => {
+  app.post(endpoint, async (req: Request, res: Response) => {
     try {
       const server = createServer();
       const transport = new StreamableHTTPServerTransport({
@@ -36,7 +36,7 @@ export const startHTTPStreamableServer = async (
     }
   });
 
-  app.get(endpoint, (req, res) => {
+  app.get(endpoint, (req: Request, res: Response) => {
     res.status(405).json({
       jsonrpc: "2.0",
       error: { code: -32000, message: "Method not allowed" },
@@ -44,7 +44,7 @@ export const startHTTPStreamableServer = async (
     });
   });
 
-  app.delete(endpoint, (req, res) => {
+  app.delete(endpoint, (req: Request, res: Response) => {
     res.status(405).json({
       jsonrpc: "2.0",
       error: { code: -32000, message: "Method not allowed" },

@@ -15,15 +15,16 @@ const parsed = parseArgs({
       default: "stdio",
     },
     host: {
-      type: "boolean",
+      type: "string",
       short: "h",
-      default: false,
+      default: "localhost",
     },
     port: {
       type: "string",
       short: "p",
       default: "1122",
     },
+    
     endpoint: {
       type: "string",
       short: "e",

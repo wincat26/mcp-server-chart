@@ -30,7 +30,7 @@ export function createServer(): Server {
 
   setupToolHandlers(server);
 
-  server.onerror = (error) => console.error("[MCP Error]", error);
+  server.onerror = (error: Error) => console.error("[MCP Error]", error);
   process.on("SIGINT", async () => {
     await server.close();
     process.exit(0);
@@ -61,7 +61,7 @@ function setupToolHandlers(server: Server): void {
     tools: getEnabledTools().map((chart) => chart.tool),
   }));
 
-  server.setRequestHandler(CallToolRequestSchema, async (request) => {
+  server.setRequestHandler(CallToolRequestSchema, async (request: any) => {
     return await callTool(request.params.name, request.params.arguments);
   });
 }
