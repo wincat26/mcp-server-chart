@@ -1,7 +1,8 @@
 import type { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
-import express, { Request, Response } from "express";
 import cors from "cors";
+import express, { type Request, type Response } from "express";
+import { logger } from "../utils/logger";
 
 export const startHTTPStreamableServer = async (
   createServer: () => Server,
@@ -14,18 +15,27 @@ export const startHTTPStreamableServer = async (
   app.use(cors({ origin: "*", exposedHeaders: ["Mcp-Session-Id"] }));
 
   app.post(endpoint, async (req: Request, res: Response) => {
+    // In stateless mode, create a new transport for each request to prevent
+    // request ID collisions. Different clients may use the same JSON-RPC request IDs,
+    // which would cause responses to be routed to the wrong HTTP connections if
+    // the transport state is shared.
     try {
       const server = createServer();
       const transport = new StreamableHTTPServerTransport({
         sessionIdGenerator: undefined,
+        enableJsonResponse: true,
       });
+
       res.on("close", () => {
         transport.close();
-        server.close();
+        logger.info("HTTP Streamable Server response closed");
       });
+
       await server.connect(transport);
       await transport.handleRequest(req, res, req.body);
-    } catch (error) {
+      logger.info("HTTP Streamable Server response connected");
+    } catch (e) {
+      logger.error("HTTP Streamable Server response error", e);
       if (!res.headersSent) {
         res.status(500).json({
           jsonrpc: "2.0",
@@ -36,24 +46,8 @@ export const startHTTPStreamableServer = async (
     }
   });
 
-  app.get(endpoint, (req: Request, res: Response) => {
-    res.status(405).json({
-      jsonrpc: "2.0",
-      error: { code: -32000, message: "Method not allowed" },
-      id: null,
-    });
-  });
-
-  app.delete(endpoint, (req: Request, res: Response) => {
-    res.status(405).json({
-      jsonrpc: "2.0",
-      error: { code: -32000, message: "Method not allowed" },
-      id: null,
-    });
-  });
-
   app.listen(port, host, () => {
-    console.log(
+    logger.success(
       `Streamable HTTP Server listening on http://${host}:${port}${endpoint}`,
     );
   });
