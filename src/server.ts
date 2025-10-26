@@ -100,9 +100,10 @@ export async function runSSEServer(
  * Runs the server with HTTP streamable transport.
  */
 export async function runHTTPStreamableServer(
-  host = "localhost",
-  port = 1122,
+  host = process.env.HOST || "0.0.0.0",
+  port = Number(process.env.PORT) || 8080,
   endpoint = "/mcp",
 ): Promise<void> {
+  console.log(`🚀 Starting MCP Server on http://${host}:${port}${endpoint}`);
   await startHTTPStreamableServer(createServer, endpoint, port, host);
 }
