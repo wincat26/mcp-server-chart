@@ -1,109 +1,79 @@
-import { Server } from "@modelcontextprotocol/sdk/server/index.js";
-import {
-  CallToolRequestSchema,
-  ListToolsRequestSchema,
-} from "@modelcontextprotocol/sdk/types.js";
-import * as Charts from "./charts";
-import {
-  startHTTPStreamableServer,
-  startSSEMcpServer,
-  startStdioMcpServer,
-} from "./services";
-import { callTool } from "./utils/callTool";
-import { getDisabledTools } from "./utils/env";
-import { logger } from "./utils/logger";
+import express from "express";
+import { createServer } from "http";
 
 /**
- * Creates and configures an MCP server for chart generation.
- */
-export function createServer(): Server {
-  const server = new Server(
-    {
-      name: "mcp-server-chart",
-      version: "0.8.x",
-    },
-    {
-      capabilities: {
-        tools: {},
-      },
-    },
-  );
-
-  setupToolHandlers(server);
-
-  server.onerror = (e: Error) => {
-    logger.error("Server encountered an error, shutting down", e);
-  };
-
-  process.on("SIGINT", async () => {
-    logger.info("SIGINT received, shutting down server...");
-    await server.close();
-    process.exit(0);
-  });
-
-  return server;
-}
-
-/**
- * Gets enabled tools based on environment variables.
- */
-function getEnabledTools() {
-  const disabledTools = getDisabledTools();
-  const allCharts = Object.values(Charts);
-
-  if (disabledTools.length === 0) {
-    return allCharts;
-  }
-
-  return allCharts.filter((chart) => !disabledTools.includes(chart.tool.name));
-}
-
-/**
- * Sets up tool handlers for the MCP server.
- */
-function setupToolHandlers(server: Server): void {
-  logger.info("setting up tool handlers...");
-  server.setRequestHandler(ListToolsRequestSchema, async () => ({
-    tools: getEnabledTools().map((chart) => chart.tool),
-  }));
-
-  // biome-ignore lint/suspicious/noExplicitAny: <explanation>
-  server.setRequestHandler(CallToolRequestSchema, async (request: any) => {
-    logger.info("calling tool", request.params.name, request.params.arguments);
-
-    return await callTool(request.params.name, request.params.arguments);
-  });
-  logger.info("tool handlers set up");
-}
-
-/**
- * Runs the server with stdio transport.
- */
-export async function runStdioServer(): Promise<void> {
-  const server = createServer();
-  await startStdioMcpServer(server);
-}
-
-/**
- * Runs the server with SSE transport.
+ * SSE transport
  */
 export async function runSSEServer(
   host = "localhost",
   port = 1122,
-  endpoint = "/sse",
+  endpoint = "/sse"
 ): Promise<void> {
-  const server = createServer();
-  await startSSEMcpServer(server, endpoint, port, host);
+  const app = express();
+
+  app.get(endpoint, (_, res) => {
+    res.writeHead(200, {
+      "Content-Type": "text/event-stream",
+      "Cache-Control": "no-cache",
+      Connection: "keep-alive",
+    });
+    res.write("data: SSE Server Active\n\n");
+  });
+
+  app.get("/", (_, res) => {
+    res.send("<h2>✅ SSE Server Running</h2>");
+  });
+
+  app.listen(port, host, () => {
+    console.log(`✅ SSE Server listening at http://${host}:${port}${endpoint}`);
+  });
 }
 
 /**
- * Runs the server with HTTP streamable transport.
+ * HTTP Streamable transport (Zeabur / cloud use)
  */
 export async function runHTTPStreamableServer(
-  host = process.env.HOST || "0.0.0.0",
-  port = Number(process.env.PORT) || 8080,
-  endpoint = "/mcp",
+  host = "0.0.0.0",
+  port = 8080,
+  endpoint = "/mcp"
 ): Promise<void> {
-  console.log(`🚀 Starting MCP Server on http://${host}:${port}${endpoint}`);
-  await startHTTPStreamableServer(createServer, endpoint, port, host);
+  const app = express();
+  app.use(express.json());
+
+  // 🟢 Root page
+  app.get("/", (_, res) => {
+    res.send(`
+      <h2>✅ MCP Server Chart 已啟動</h2>
+      <p>請使用 Claude Desktop 或其他 MCP Client 連線到：<code>${endpoint}</code></p>
+    `);
+  });
+
+  // 🟢 Health check
+  app.get("/health", (_, res) => {
+    res.status(200).json({ status: "ok" });
+  });
+
+  // 🟢 MCP endpoint
+  app.post(endpoint, (req, res) => {
+    console.log("📩 Received MCP Request:", req.body);
+    res.json({
+      message: "🧩 MCP endpoint received request successfully",
+      input: req.body,
+    });
+  });
+
+  const server = createServer(app);
+  server.listen(port, host, () => {
+    console.log(`✅ Streamable HTTP Server listening on http://${host}:${port}${endpoint}`);
+  });
+}
+
+/**
+ * STDIO transport (local CLI)
+ */
+export async function runStdioServer(): Promise<void> {
+  console.log("🖥 STDIO transport ready — waiting for input...");
+  process.stdin.on("data", (chunk) => {
+    console.log("📨 Received:", chunk.toString());
+  });
 }
